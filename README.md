@@ -38,7 +38,7 @@
 - **Frontend**: HTML5, CSS3, JavaScript ES6+
 - **PWA**: Service Worker, Web App Manifest
 - **Icons**: Font Awesome 6.4.0
-- **Storage**: LocalStorage API
+- **Storage**: LocalStorage API, Supabase Database
 - **Export**: CSV generation
 - **Deploy**: Netlify, Vercel, GitHub Pages
 
@@ -60,8 +60,8 @@
 
 ### ✏️ Edição e Salvamento
 - **Modo de Edição**: Clique para editar células
-- **Salvamento Automático**: Dados salvos localmente
-- **Backup Seguro**: Recuperação de dados
+- **Salvamento Automático**: Dados salvos no Supabase e localmente
+- **Backup Seguro**: Recuperação de dados do Supabase ou localStorage
 - **Validação**: Verificação de dados inseridos
 
 ### 📤 Exportação e Compartilhamento
@@ -90,5 +90,13 @@ node server.js
 
 # Acesse http://localhost:8080
 ```
+
+## ☁️ Integração com Supabase
+
+Este projeto agora suporta persistência de dados usando Supabase:
+
+- Os dados são salvos automaticamente no banco de dados Supabase
+- Fallback para localStorage quando o Supabase não está disponível
+- Instruções detalhadas em [SUPABASE-INSTRUCTIONS.md](SUPABASE-INSTRUCTIONS.md)
 
 ## 📁 Estrutura do Projeto
