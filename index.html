@@ -698,6 +698,9 @@
             <button class="tab-button" role="tab" aria-selected="false" onclick="openTab(event, 'resumo')" id="tab-resumo">
                 <i class="fas fa-calendar-week" aria-hidden="true"></i> Resumo da Semana
             </button>
+            <button class="tab-button" role="tab" aria-selected="false" onclick="openTab(event, 'segunda')" id="tab-segunda">
+                <i class="fas fa-calendar-day" aria-hidden="true"></i> Segunda-feira
+            </button>
             <button class="tab-button" role="tab" aria-selected="false" onclick="openTab(event, 'terca')" id="tab-terca">
                 <i class="fas fa-calendar-day" aria-hidden="true"></i> Terça-feira
             </button>
@@ -709,9 +712,6 @@
             </button>
             <button class="tab-button" role="tab" aria-selected="false" onclick="openTab(event, 'sexta')" id="tab-sexta">
                 <i class="fas fa-calendar-day" aria-hidden="true"></i> Sexta-feira
-            </button>
-            <button class="tab-button" role="tab" aria-selected="false" onclick="openTab(event, 'segunda')" id="tab-segunda">
-                <i class="fas fa-calendar-day" aria-hidden="true"></i> Segunda-feira
             </button>
         </nav>
 
@@ -774,6 +774,7 @@
         
         // Loading indicator
         function showLoadingIndicator(message = 'Carregando dados...') {
+            console.log('Showing loading indicator with message:', message);
             const container = document.getElementById('content-container');
             if (container) {
                 container.innerHTML = `
@@ -784,6 +785,8 @@
                         </div>
                     </div>
                 `;
+            } else {
+                console.log('Content container not found');
             }
         }
 
@@ -803,6 +806,8 @@
                         </button>
                     </div>
                 `;
+            } else {
+                console.log('Content container not found for error handling');
             }
         }
 
@@ -828,6 +833,30 @@
                 const data = await response.json();
                 console.log('Dados carregados com sucesso:', data);
                 
+                // Verify data structure
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Dados inválidos carregados do arquivo JSON');
+                }
+                
+                console.log('Verificando estrutura dos dados...');
+                const requiredDays = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'resumo'];
+                for (const day of requiredDays) {
+                    if (!data[day]) {
+                        console.warn(`Dados para o dia ${day} não encontrados`);
+                    } else {
+                        console.log(`Dados para o dia ${day} verificados:`, data[day]);
+                    }
+                }
+                
+                // Additional verification
+                console.log('Verificando se os dados estão completos...');
+                const allDaysPresent = requiredDays.every(day => data[day]);
+                if (!allDaysPresent) {
+                    console.warn('Alguns dias estão faltando nos dados');
+                } else {
+                    console.log('Todos os dias estão presentes nos dados');
+                }
+                
                 return data;
             } catch (error) {
                 console.error('Erro detalhado ao carregar dados:', error);
@@ -838,297 +867,338 @@
 
         // Enhanced tab rendering with accessibility
         function renderTabContent(tabName, container) {
-            console.log('=== renderTabContent called ===');
-            console.log('tabName:', tabName);
-            console.log('container:', container);
-            console.log('scheduleData:', window.scheduleData);
-            
-            if (!window.scheduleData) {
-                console.log('Dados não disponíveis para renderização');
-                if (container) {
-                    container.innerHTML = '<p>Dados não disponíveis</p>';
+            try {
+                console.log('=== renderTabContent called ===');
+                console.log('tabName:', tabName);
+                console.log('container:', container);
+                console.log('scheduleData:', window.scheduleData);
+                
+                // Additional logging
+                console.log('scheduleData existe:', !!window.scheduleData);
+                console.log('container existe:', !!container);
+                
+                if (!window.scheduleData) {
+                    console.log('Dados não disponíveis para renderização');
+                    if (container) {
+                        container.innerHTML = '<p>Dados não disponíveis</p>';
+                    }
+                    return;
                 }
-                return;
-            }
 
-            if (container) {
-                container.classList.add('fade-in');
-            }
-            
-            if (tabName === 'resumo') {
-                console.log('Renderizando resumo da semana');
                 if (container) {
-                    renderWeeklySummary(container);
+                    container.classList.add('fade-in');
                 }
-            } else {
-                console.log('Renderizando cronograma diário:', tabName);
+                
+                if (tabName === 'resumo') {
+                    console.log('Renderizando resumo da semana');
+                    if (container) {
+                        renderWeeklySummary(container);
+                    }
+                } else {
+                    console.log('Renderizando cronograma diário:', tabName);
+                    if (container) {
+                        renderDaySchedule(tabName, container);
+                    }
+                }
+                console.log('=== renderTabContent finished ===');
+            } catch (error) {
+                console.error('Error in renderTabContent:', error);
                 if (container) {
-                    renderDaySchedule(tabName, container);
+                    container.innerHTML = '<p>Erro ao carregar o conteúdo</p>';
                 }
             }
-            console.log('=== renderTabContent finished ===');
         }
 
         // Enhanced weekly summary
         function renderWeeklySummary(container) {
-            console.log('=== renderWeeklySummary called ===');
-            console.log('container:', container);
-            console.log('scheduleData:', window.scheduleData);
-            
-            const days = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-            let content = '';
-            
-            // Add header
-            content += `
-                <div class="header-info">
-                    <h2><i class="fas fa-calendar-week"></i> Resumo Semanal</h2>
-                    <p>Visão geral dos horários de funcionamento da USF Apipucos</p>
-                </div>
-            `;
-
-            // Add summary table - showing professionals by day periods (morning and afternoon)
-            content += `
-                <table class="summary-table">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">Profissional</th>
-                            <th colspan="2">Segunda-feira</th>
-                            <th colspan="2">Terça-feira</th>
-                            <th colspan="2">Quarta-feira</th>
-                            <th colspan="2">Quinta-feira</th>
-                            <th colspan="2">Sexta-feira</th>
-                        </tr>
-                        <tr>
-                            <th>Manhã</th>
-                            <th>Tarde</th>
-                            <th>Manhã</th>
-                            <th>Tarde</th>
-                            <th>Manhã</th>
-                            <th>Tarde</th>
-                            <th>Manhã</th>
-                            <th>Tarde</th>
-                            <th>Manhã</th>
-                            <th>Tarde</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            // Add table rows
-            const professionals = [
-                { name: 'Dr. Rubens Cavalcanti', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
-                { name: 'Dr. Felipe Jacobovitz (R1)', schedule: ['Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-'] },
-                { name: 'Dra. Sabrynna Mayara (R2)', schedule: ['-', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-'] },
-                { name: 'Dr. Marcos Augusto', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
-                { name: 'Enf. Clariane Falcão', schedule: ['Atendimento', 'Atendimento', 'Estudo', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
-                { name: 'Enf. Tharcia Bezerra', schedule: ['Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento'] },
-                { name: 'Téc. Enf. Carmen Verônica', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
-                { name: 'Téc. Enf. (Suporte)', schedule: ['Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento'] },
-                { name: 'Dra. Loala Lindoso', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
-                { name: 'Dra. Sania Buonora', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
-                { name: 'Agentes de Saúde', schedule: ['Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Reunião', 'Atividades'] }
-            ];
-            
-            professionals.forEach(professional => {
+            try {
+                console.log('=== renderWeeklySummary called ===');
+                console.log('container:', container);
+                console.log('scheduleData:', window.scheduleData);
+                
+                // Additional logging
+                console.log('container existe:', !!container);
+                
+                const days = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+                let content = '';
+                
+                // Add header
                 content += `
-                    <tr>
-                        <td><strong>${professional.name}</strong></td>
+                    <div class="header-info">
+                        <h2><i class="fas fa-calendar-week"></i> Resumo Semanal</h2>
+                        <p>Visão geral dos horários de funcionamento da USF Apipucos</p>
+                    </div>
+                `;
+
+                // Add summary table - showing professionals by day periods (morning and afternoon)
+                content += `
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">Profissional</th>
+                                <th colspan="2">Segunda-feira</th>
+                                <th colspan="2">Terça-feira</th>
+                                <th colspan="2">Quarta-feira</th>
+                                <th colspan="2">Quinta-feira</th>
+                                <th colspan="2">Sexta-feira</th>
+                            </tr>
+                            <tr>
+                                <th>Manhã</th>
+                                <th>Tarde</th>
+                                <th>Manhã</th>
+                                <th>Tarde</th>
+                                <th>Manhã</th>
+                                <th>Tarde</th>
+                                <th>Manhã</th>
+                                <th>Tarde</th>
+                                <th>Manhã</th>
+                                <th>Tarde</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                 `;
                 
-                professional.schedule.forEach(slot => {
-                    content += `<td contenteditable="true">${slot}</td>`;
+                // Add table rows
+                const professionals = [
+                    { name: 'Dr. Rubens Cavalcanti', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                    { name: 'Dr. Felipe Jacobovitz (R1)', schedule: ['Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-'] },
+                    { name: 'Dra. Sabrynna Mayara (R2)', schedule: ['-', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-'] },
+                    { name: 'Dr. Marcos Augusto', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                    { name: 'Enf. Clariane Falcão', schedule: ['Atendimento', 'Atendimento', 'Estudo', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                    { name: 'Enf. Tharcia Bezerra', schedule: ['Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento'] },
+                    { name: 'Téc. Enf. Carmen Verônica', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                    { name: 'Téc. Enf. (Suporte)', schedule: ['Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento'] },
+                    { name: 'Dra. Loala Lindoso', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                    { name: 'Dra. Sania Buonora', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                    { name: 'Agentes de Saúde', schedule: ['Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Reunião', 'Atividades'] }
+                ];
+                
+                professionals.forEach(professional => {
+                    content += `
+                        <tr>
+                            <td><strong>${professional.name}</strong></td>
+                    `;
+                    
+                    professional.schedule.forEach(slot => {
+                        content += `<td contenteditable="true">${slot}</td>`;
+                    });
+                    
+                    content += `
+                        </tr>
+                    `;
                 });
                 
                 content += `
-                    </tr>
+                        </tbody>
+                    </table>
                 `;
-            });
-            
-            content += `
-                    </tbody>
-                </table>
-            `;
-            
-            // Add legend
-            content += `
-                <div class="legend" style="margin-top: 30px;">
-                    <h3><i class="fas fa-palette"></i> Legenda de Cores</h3>
-                    <div class="legend-grid">
-                        <div class="legend-item">
-                            <div class="legend-color lunch" onclick="applyColor(this, 'lunch')"></div>
-                            <span>Horário de Almoço</span>
+                
+                // Add legend
+                content += `
+                    <div class="legend" style="margin-top: 30px;">
+                        <h3><i class="fas fa-palette"></i> Legenda de Cores</h3>
+                        <div class="legend-grid">
+                            <div class="legend-item">
+                                <div class="legend-color lunch" onclick="applyColor(this, 'lunch')"></div>
+                                <span>Horário de Almoço</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color collection" onclick="applyColor(this, 'collection')"></div>
+                                <span>Coleta de Exames</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color study-day" onclick="applyColor(this, 'study-day')"></div>
+                                <span>Dia de Estudo</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color vacancy" onclick="applyColor(this, 'vacancy')"></div>
+                                <span>Vagas Disponíveis</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color dental" onclick="applyColor(this, 'dental')"></div>
+                                <span>Atendimento Odontológico</span>
+                            </div>
+                            <!-- Novas especialidades -->
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #ffffff;" onclick="applyColor(this, 'women-health')"></div>
+                                <span>Saúde da Mulher</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #ffffff;" onclick="applyColor(this, 'pediatrics')"></div>
+                                <span>Pediatria</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: #ffffff;" onclick="applyColor(this, 'general-practitioner')"></div>
+                                <span>Clínico Geral</span>
+                            </div>
                         </div>
-                        <div class="legend-item">
-                            <div class="legend-color collection" onclick="applyColor(this, 'collection')"></div>
-                            <span>Coleta de Exames</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color study-day" onclick="applyColor(this, 'study-day')"></div>
-                            <span>Dia de Estudo</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color vacancy" onclick="applyColor(this, 'vacancy')"></div>
-                            <span>Vagas Disponíveis</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color dental" onclick="applyColor(this, 'dental')"></div>
-                            <span>Atendimento Odontológico</span>
-                        </div>
-                        <!-- Novas especialidades -->
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #ffffff;" onclick="applyColor(this, 'women-health')"></div>
-                            <span>Saúde da Mulher</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #ffffff;" onclick="applyColor(this, 'pediatrics')"></div>
-                            <span>Pediatria</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #ffffff;" onclick="applyColor(this, 'general-practitioner')"></div>
-                            <span>Clínico Geral</span>
+                        <div style="margin-top: 15px;">
+                            <button class="action-button edit-button" onclick="clearColors()" style="background: #dc3545; color: white;">
+                                <i class="fas fa-eraser"></i> Limpar Cores
+                            </button>
                         </div>
                     </div>
-                    <div style="margin-top: 15px;">
-                        <button class="action-button edit-button" onclick="clearColors()" style="background: #dc3545; color: white;">
-                            <i class="fas fa-eraser"></i> Limpar Cores
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            // Add professionals section
-            content += `
-                <div class="professionals-section" style="margin-top: 30px;">
-                    <h3><i class="fas fa-user-md"></i> Profissionais da Unidade</h3>
-                    <div class="professionals-grid" style="display: flex; flex-wrap: wrap; gap: 20px;">
-                        <div class="professional-category" style="flex: 1; min-width: 200px;">
-                            <h4>Médicos</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dr. Rubens Cavalcanti</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dr. Marcos Augusto</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dra. Loala Lindoso</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dra. Sania Buonora</span>
+                `;
+                
+                // Add professionals section
+                content += `
+                    <div class="professionals-section" style="margin-top: 30px;">
+                        <h3><i class="fas fa-user-md"></i> Profissionais da Unidade</h3>
+                        <div class="professionals-grid" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                            <div class="professional-category" style="flex: 1; min-width: 200px;">
+                                <h4>Médicos</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dr. Rubens Cavalcanti</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dr. Marcos Augusto</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dra. Loala Lindoso</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dra. Sania Buonora</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="professional-category" style="flex: 1; min-width: 200px;">
-                            <h4>Residentes</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dr. Felipe Jacobovitz</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dra. Sabrynna Mayara</span>
+                            <div class="professional-category" style="flex: 1; min-width: 200px;">
+                                <h4>Residentes</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dr. Felipe Jacobovitz</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Dra. Sabrynna Mayara</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="professional-category" style="flex: 1; min-width: 200px;">
-                            <h4>Enfermeiros</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Enf. Clariane Falcão</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Enf. Tharcia Bezerra</span>
+                            <div class="professional-category" style="flex: 1; min-width: 200px;">
+                                <h4>Enfermeiros</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Enf. Clariane Falcão</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Enf. Tharcia Bezerra</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="professional-category" style="flex: 1; min-width: 200px;">
-                            <h4>Técnicos de Enfermagem</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Téc. Enf. Carmen Verônica</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Téc. Enf. (Suporte)</span>
+                            <div class="professional-category" style="flex: 1; min-width: 200px;">
+                                <h4>Técnicos de Enfermagem</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Téc. Enf. Carmen Verônica</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Téc. Enf. (Suporte)</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="professional-category" style="flex: 1; min-width: 200px;">
-                            <h4>Agentes de Saúde</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Débora Ellen</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Margareth Lopes</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Simone Firmino</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Jadilene Paz</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Sandra Cristina</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Sandra Tavares</span>
-                                <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Márcia Araújo</span>
+                            <div class="professional-category" style="flex: 1; min-width: 200px;">
+                                <h4>Agentes de Saúde</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Débora Ellen</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Margareth Lopes</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Simone Firmino</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Jadilene Paz</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Sandra Cristina</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Sandra Tavares</span>
+                                    <span style="background: #e9ecef; padding: 5px 10px; border-radius: 5px;">Márcia Araújo</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
 
-            console.log('Generated content length:', content.length);
-            if (container) {
-                container.innerHTML = content;
-                console.log('Content set to container');
-            } else {
-                console.log('No container to set content to');
+                console.log('Generated content length:', content.length);
+                console.log('Content preview:', content.substring(0, 500));
+                
+                if (container) {
+                    container.innerHTML = content;
+                    console.log('Content set to container');
+                } else {
+                    console.log('No container to set content to');
+                }
+                console.log('=== renderWeeklySummary finished ===');
+            } catch (error) {
+                console.error('Error in renderWeeklySummary:', error);
+                if (container) {
+                    container.innerHTML = '<p>Erro ao carregar o resumo semanal</p>';
+                }
             }
-            console.log('=== renderWeeklySummary finished ===');
         }
 
         // Enhanced day schedule rendering
         function renderDaySchedule(dayName, container) {
-            const dayData = window.scheduleData[dayName];
-            if (!dayData) {
-                container.innerHTML = '<p>Dados não disponíveis para este dia</p>';
-                return;
-            }
-
-            let content = `
-                <div class="header-info">
-                    <h2><i class="fas fa-calendar-day"></i> ${dayData.title}</h2>
-                    <p class="editable-date" contenteditable="false">${dayData.date}</p>
-                </div>
+            try {
+                console.log('=== renderDaySchedule called ===');
+                console.log('dayName:', dayName);
+                console.log('container:', container);
                 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Horário</th>
-                            <th>Dr. Rubens</th>
-                            <th>Dr. Felipe (R1)</th>
-                            <th>Dra. Sabrynna (R2)</th>
-                            <th>Dr. Marcos</th>
-                            <th>Enf. Clariane</th>
-                            <th>Enf. Tharcia</th>
-                            <th>Téc. Carmen</th>
-                            <th>Téc. Suporte</th>
-                            <th>Dra. Loala</th>
-                            <th>Dra. Sania</th>
-                            <th>Agentes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+                // Additional logging
+                console.log('scheduleData existe:', !!window.scheduleData);
+                console.log('container existe:', !!container);
+                
+                const dayData = window.scheduleData[dayName];
+                if (!dayData) {
+                    container.innerHTML = '<p>Dados não disponíveis para este dia</p>';
+                    return;
+                }
 
-            // Verificar se o array schedule existe antes de iterar
-            if (dayData.schedule && dayData.schedule.length > 0) {
-                dayData.schedule.forEach(slot => {
+                let content = `
+                    <div class="header-info">
+                        <h2><i class="fas fa-calendar-day"></i> ${dayData.title}</h2>
+                        <p class="editable-date" contenteditable="false">${dayData.date}</p>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Horário</th>
+                                <th>Dr. Rubens</th>
+                                <th>Dr. Felipe (R1)</th>
+                                <th>Dra. Sabrynna (R2)</th>
+                                <th>Dr. Marcos</th>
+                                <th>Enf. Clariane</th>
+                                <th>Enf. Tharcia</th>
+                                <th>Téc. Carmen</th>
+                                <th>Téc. Suporte</th>
+                                <th>Dra. Loala</th>
+                                <th>Dra. Sania</th>
+                                <th>Agentes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                // Verificar se o array schedule existe antes de iterar
+                if (dayData.schedule && dayData.schedule.length > 0) {
+                    dayData.schedule.forEach(slot => {
+                        content += `
+                            <tr>
+                                <td><strong>${slot.horario}</strong></td>
+                                <td contenteditable="false" class="${getCellClass(slot.drA)}">${slot.drA}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.resA)}">${slot.resA}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.resB)}">${slot.resB}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.drB)}">${slot.drB}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.enfC)}">${slot.enfC}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.enfD)}">${slot.enfD}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.tecL)}">${slot.tecL}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.tecM)}">${slot.tecM}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.draE)}">${slot.draE}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.draF)}">${slot.draF}</td>
+                                <td contenteditable="false" class="${getCellClass(slot.agentes)}">${slot.agentes}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    // Caso o schedule esteja vazio
                     content += `
                         <tr>
-                            <td><strong>${slot.horario}</strong></td>
-                            <td contenteditable="false" class="${getCellClass(slot.drA)}">${slot.drA}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.resA)}">${slot.resA}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.resB)}">${slot.resB}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.drB)}">${slot.drB}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.enfC)}">${slot.enfC}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.enfD)}">${slot.enfD}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.tecL)}">${slot.tecL}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.tecM)}">${slot.tecM}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.draE)}">${slot.draE}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.draF)}">${slot.draF}</td>
-                            <td contenteditable="false" class="${getCellClass(slot.agentes)}">${slot.agentes}</td>
+                            <td colspan="12">Nenhum horário disponível para este dia</td>
                         </tr>
                     `;
-                });
-            } else {
-                // Caso o schedule esteja vazio
-                content += `
-                    <tr>
-                        <td colspan="12">Nenhum horário disponível para este dia</td>
-                    </tr>
-                `;
-            }
+                }
 
-            content += '</tbody></table>';
-            container.innerHTML = content;
+                content += '</tbody></table>';
+                container.innerHTML = content;
+            } catch (error) {
+                console.error('Error in renderDaySchedule:', error);
+                container.innerHTML = '<p>Erro ao carregar os dados para este dia</p>';
+            }
         }
 
         // Enhanced cell class detection
         function getCellClass(cellContent) {
-            if (!cellContent) return '';
-            // Return empty string to prevent any color classes from being applied
-            return '';
+            try {
+                if (!cellContent) return '';
+                // Return empty string to prevent any color classes from being applied
+                return '';
+            } catch (error) {
+                console.error('Error in getCellClass:', error);
+                return '';
+            }
         }
 
         // New function to apply colors to selected cells
@@ -1161,40 +1231,47 @@
 
         // Enhanced tab switching with accessibility
         function openTab(evt, tabName) {
-            console.log('Abrindo aba:', tabName, 'evento:', evt);
-            // Update progress
-            updateProgress(0);
-            
-            // Remove active class from all tabs
-            const tabButtons = document.querySelectorAll('.tab-button');
-            tabButtons.forEach(button => {
-                button.classList.remove('active');
-                button.setAttribute('aria-selected', 'false');
-            });
+            try {
+                console.log('Abrindo aba:', tabName, 'evento:', evt);
+                // Update progress
+                updateProgress(0);
+                
+                // Remove active class from all tabs
+                const tabButtons = document.querySelectorAll('.tab-button');
+                tabButtons.forEach(button => {
+                    button.classList.remove('active');
+                    button.setAttribute('aria-selected', 'false');
+                });
 
-            // Add active class to current tab
-            const currentTab = evt.currentTarget || document.getElementById(`tab-${tabName}`);
-            if (currentTab) {
-                console.log('Ativando aba:', currentTab);
-                currentTab.classList.add('active');
-                currentTab.setAttribute('aria-selected', 'true');
-            } else {
-                console.log('Aba não encontrada para:', tabName);
+                // Add active class to current tab
+                const currentTab = evt.currentTarget || document.getElementById(`tab-${tabName}`);
+                if (currentTab) {
+                    console.log('Ativando aba:', currentTab);
+                    currentTab.classList.add('active');
+                    currentTab.setAttribute('aria-selected', 'true');
+                } else {
+                    console.log('Aba não encontrada para:', tabName);
+                }
+
+                // Render content
+                const container = document.getElementById('content-container');
+                console.log('Container encontrado:', !!container);
+                console.log('scheduleData disponível:', !!window.scheduleData);
+                
+                if (container && window.scheduleData) {
+                    console.log('Renderizando conteúdo para:', tabName);
+                    renderTabContent(tabName, container);
+                    updateProgress(100);
+                } else {
+                    console.log('Não é possível renderizar conteúdo - container:', container, 'scheduleData:', window.scheduleData);
+                }
+
+                // Announce to screen readers
+                const announcement = `Exibindo ${tabName === 'resumo' ? 'resumo da semana' : tabName + '-feira'}`;
+                announceToScreenReader(announcement);
+            } catch (error) {
+                console.error('Error in openTab:', error);
             }
-
-            // Render content
-            const container = document.getElementById('content-container');
-            if (container && window.scheduleData) {
-                console.log('Renderizando conteúdo para:', tabName);
-                renderTabContent(tabName, container);
-                updateProgress(100);
-            } else {
-                console.log('Não é possível renderizar conteúdo - container:', container, 'scheduleData:', window.scheduleData);
-            }
-
-            // Announce to screen readers
-            const announcement = `Exibindo ${tabName === 'resumo' ? 'resumo da semana' : tabName + '-feira'}`;
-            announceToScreenReader(announcement);
         }
 
         // Screen reader announcements
@@ -1795,94 +1872,115 @@
 
         // Initialize application
         window.addEventListener('DOMContentLoaded', async () => {
-            console.log('🚀 Aplicação iniciando...');
-            
             try {
-                // Show loading indicator while initializing
-                showLoadingIndicator('Inicializando aplicação...');
+                console.log('🚀 Aplicação iniciando...');
                 
-                // Load from JSON file directly
-                console.log('Carregando dados do arquivo JSON...');
-                window.scheduleData = await loadScheduleData();
-                console.log('✅ Dados do arquivo JSON carregados, dados:', window.scheduleData);
-                
-                if (window.scheduleData) {
-                    console.log('Dados disponíveis, renderizando conteúdo...');
-                    // Show first tab by default (resumo)
-                    // Use a more direct approach without setTimeout
-                    const resumoButton = document.getElementById('tab-resumo');
-                    if (resumoButton) {
-                        console.log('Encontrado botão resumo, ativando...');
-                        resumoButton.classList.add('active');
-                        // Create a proper event object for openTab
-                        const eventObj = {
-                            currentTarget: resumoButton
-                        };
-                        openTab(eventObj, 'resumo');
-                    } else {
-                        console.log('Botão resumo não encontrado, tentando primeiro botão...');
-                        // Fallback - try to find first button
-                        const firstButton = document.querySelector('.tab-button');
-                        if (firstButton) {
-                            console.log('Encontrado primeiro botão, ativando...');
-                            firstButton.classList.add('active');
+                try {
+                    // Show loading indicator while initializing
+                    showLoadingIndicator('Inicializando aplicação...');
+                    
+                    // Load from JSON file directly
+                    console.log('Carregando dados do arquivo JSON...');
+                    window.scheduleData = await loadScheduleData();
+                    console.log('✅ Dados do arquivo JSON carregados, dados:', window.scheduleData);
+                    
+                    // Additional logging
+                    console.log('Tipo de scheduleData:', typeof window.scheduleData);
+                    console.log('scheduleData é um objeto:', window.scheduleData && typeof window.scheduleData === 'object');
+                    
+                    // Simple test to see if data is loaded
+                    if (window.scheduleData) {
+                        console.log('Testando acesso aos dados...');
+                        console.log('Dados de segunda:', window.scheduleData.segunda);
+                        console.log('Dados de terca:', window.scheduleData.terca);
+                        console.log('Dados de resumo:', window.scheduleData.resumo);
+                    }
+                    
+                    if (window.scheduleData) {
+                        console.log('Dados disponíveis, renderizando conteúdo...');
+                        // Show first tab by default (resumo)
+                        // Use a more direct approach without setTimeout
+                        const resumoButton = document.getElementById('tab-resumo');
+                        if (resumoButton) {
+                            console.log('Encontrado botão resumo, ativando...');
+                            resumoButton.classList.add('active');
+                            // Create a proper event object for openTab
                             const eventObj = {
-                                currentTarget: firstButton
+                                currentTarget: resumoButton
                             };
                             openTab(eventObj, 'resumo');
                         } else {
-                            console.log('Nenhum botão encontrado!');
+                            console.log('Botão resumo não encontrado, tentando primeiro botão...');
+                            // Fallback - try to find first button
+                            const firstButton = document.querySelector('.tab-button');
+                            if (firstButton) {
+                                console.log('Encontrado primeiro botão, ativando...');
+                                firstButton.classList.add('active');
+                                const eventObj = {
+                                    currentTarget: firstButton
+                                };
+                                const tabId = firstButton.id.replace('tab-', '');
+                                openTab(eventObj, tabId);
+                            } else {
+                                console.log('Nenhum botão encontrado!');
+                            }
                         }
-                    }
-                    
-                    // Register service worker for PWA
-                    if ('serviceWorker' in navigator) {
+                        
+                        // Register service worker for PWA
+                        if ('serviceWorker' in navigator) {
+                            try {
+                                navigator.serviceWorker.register('./sw.js')
+                                    .then(() => console.log('✅ Service Worker registrado'))
+                                    .catch(error => console.log('ℹ️ Service Worker não disponível', error));
+                            } catch (error) {
+                                console.log('ℹ️ Service Worker não disponível');
+                            }
+                        }
+                        
+                        // Initialize schedule features (timeline marker and square functionality)
                         try {
-                            navigator.serviceWorker.register('./sw.js')
-                                .then(() => console.log('✅ Service Worker registrado'))
-                                .catch(error => console.log('ℹ️ Service Worker não disponível', error));
+                            initializeScheduleFeatures();
                         } catch (error) {
-                            console.log('ℹ️ Service Worker não disponível');
+                            console.log('ℹ️ Erro ao inicializar recursos de agenda:', error);
                         }
+                    } else {
+                        console.log('❌ Nenhum dado disponível para carregar');
+                        throw new Error('Falha ao carregar dados do cronograma');
                     }
                     
-                    // Initialize schedule features (timeline marker and square functionality)
-                    initializeScheduleFeatures();
-                } else {
-                    console.log('❌ Nenhum dado disponível para carregar');
-                    throw new Error('Falha ao carregar dados do cronograma');
-                }
-                
-            } catch (error) {
-                console.error('❌ Erro ao inicializar:', error);
-                
-                // Show a more descriptive error message
-                const container = document.getElementById('content-container');
-                if (container) {
-                    container.innerHTML = `
-                        <div style="text-align: center; padding: 40px;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #dc3545; margin-bottom: 20px;"></i>
-                            <h3>Ops! Erro ao carregar o cronograma</h3>
-                            <p>Não foi possível carregar os dados do cronograma.</p>
-                            <p style="color: #6c757d; font-size: 0.9rem;">Detalhes: ${error.message}</p>
-                            <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 5px; display: inline-block;">
-                                <p><strong>Soluções possíveis:</strong></p>
-                                <ul style="text-align: left;">
-                                    <li>Verifique sua conexão com a internet</li>
-                                    <li>Verifique se o arquivo <code>cronograma-dados.json</code> existe</li>
-                                    <li>Verifique o console do navegador para mais detalhes</li>
-                                    <li>Recarregue a página</li>
-                                </ul>
+                } catch (error) {
+                    console.error('❌ Erro ao inicializar:', error);
+                    
+                    // Show a more descriptive error message
+                    const container = document.getElementById('content-container');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 40px;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #dc3545; margin-bottom: 20px;"></i>
+                                <h3>Ops! Erro ao carregar o cronograma</h3>
+                                <p>Não foi possível carregar os dados do cronograma.</p>
+                                <p style="color: #6c757d; font-size: 0.9rem;">Detalhes: ${error.message}</p>
+                                <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 5px; display: inline-block;">
+                                    <p><strong>Soluções possíveis:</strong></p>
+                                    <ul style="text-align: left;">
+                                        <li>Verifique sua conexão com a internet</li>
+                                        <li>Verifique se o arquivo <code>cronograma-dados.json</code> existe</li>
+                                        <li>Verifique o console do navegador para mais detalhes</li>
+                                        <li>Recarregue a página</li>
+                                    </ul>
+                                </div>
+                                <button onclick="location.reload()" class="action-button" style="background: #007bff; color: white; margin-top: 20px;">
+                                    <i class="fas fa-refresh"></i> Recarregar Página
+                                </button>
                             </div>
-                            <button onclick="location.reload()" class="action-button" style="background: #007bff; color: white; margin-top: 20px;">
-                                <i class="fas fa-refresh"></i> Recarregar Página
-                            </button>
-                        </div>
-                    `;
+                        `;
+                    }
+                    
+                    // Don't override the content container with error message, just log it
+                    console.error('Erro ao carregar o sistema. Tente recarregar a página.');
                 }
-                
-                // Don't override the content container with error message, just log it
-                console.error('Erro ao carregar o sistema. Tente recarregar a página.');
+            } catch (error) {
+                console.error('❌ Erro geral na inicialização:', error);
             }
         });
 
@@ -2178,6 +2276,32 @@
             // Initial update
             updateTimelineMarker();
         }
+
+        // Test data loading
+        window.testDataLoading = async function() {
+            console.log('Testing data loading...');
+            try {
+                const response = await fetch('cronograma-dados.json');
+                console.log('Test response:', response);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Test data loaded successfully:', data);
+                    
+                    // Additional verification
+                    console.log('Test data type:', typeof data);
+                    console.log('Test data keys:', Object.keys(data));
+                } else {
+                    console.error('Test failed to load data:', response.status);
+                }
+            } catch (error) {
+                console.error('Test error:', error);
+            }
+        };
+
+        // Run test immediately
+        setTimeout(() => {
+            window.testDataLoading();
+        }, 2000);
 
     </script>
 </body>
