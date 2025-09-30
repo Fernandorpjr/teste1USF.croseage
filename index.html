@@ -750,10 +750,36 @@
 
     <script type="module">
         // Import Supabase client
-        import { supabase } from './supabase.js';
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
         
-        // Make supabase available globally
-        window.supabase = supabase;
+        // Initialize Supabase with placeholder values
+        // Initialize Supabase with placeholder values
+        // These will be updated when the user configures their Supabase project
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        // Check if Supabase is properly configured
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+            try {
+                // Create Supabase client
+                const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Make supabase available globally
+                window.supabase = supabase;
+                
+                // Signal that Supabase is ready
+                window.supabaseReady = true;
+                console.log('Supabase client initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize Supabase client:', error);
+                // Supabase not configured properly, set flag to false
+                window.supabaseReady = false;
+            }
+        } else {
+            // Supabase not configured, set flag to false
+            window.supabaseReady = false;
+            console.log('Supabase not configured, using local data only');
+        }
     </script>
     
     <script>
@@ -813,36 +839,57 @@
             try {
                 console.log('Iniciando carregamento de dados...');
                 
+                // Wait for Supabase to be ready
+                if (typeof window.supabaseReady === 'undefined') {
+                    console.log('Waiting for Supabase to be ready...');
+                    // Show loading indicator
+                    showLoadingIndicator('Inicializando conexão com Supabase...');
+                    
+                    // Wait for Supabase to be ready (with timeout)
+                    let attempts = 0;
+                    const maxAttempts = 50; // 5 seconds max
+                    while (!window.supabaseReady && attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (!window.supabaseReady) {
+                        console.warn('Supabase not ready after timeout, continuing with local data');
+                    }
+                }
+                
                 // Show loading indicator
                 showLoadingIndicator('Carregando dados do Supabase...');
                 
-                // Try to fetch data from Supabase first
-                console.log('Carregando dados do Supabase...');
-                
-                const { data: supabaseData, error } = await window.supabase
-                    .from('schedule_data')
-                    .select('*');
-                
-                if (error) {
-                    console.error('Erro ao carregar dados do Supabase:', error);
-                    throw new Error(`Erro ao carregar dados do Supabase: ${error.message}`);
-                }
-                
-                // If we have data from Supabase, use it
-                if (supabaseData && supabaseData.length > 0) {
-                    console.log('Dados carregados do Supabase com sucesso:', supabaseData);
+                // Try to fetch data from Supabase first (if ready)
+                if (window.supabaseReady && window.supabase) {
+                    console.log('Carregando dados do Supabase...');
                     
-                    // Convert array to object format
-                    const scheduleData = {};
-                    supabaseData.forEach(item => {
-                        scheduleData[item.day_name] = {
-                            title: item.title,
-                            date: item.date,
-                            schedule: item.schedule
-                        };
-                    });
+                    const { data: supabaseData, error } = await window.supabase
+                        .from('schedule_data')
+                        .select('*');
                     
-                    return scheduleData;
+                    if (error) {
+                        console.error('Erro ao carregar dados do Supabase:', error);
+                        // Continue with fallback to local data
+                    } else {
+                        // If we have data from Supabase, use it
+                        if (supabaseData && supabaseData.length > 0) {
+                            console.log('Dados carregados do Supabase com sucesso:', supabaseData);
+                            
+                            // Convert array to object format
+                            const scheduleData = {};
+                            supabaseData.forEach(item => {
+                                scheduleData[item.day_name] = {
+                                    title: item.title,
+                                    date: item.date,
+                                    schedule: item.schedule
+                                };
+                            });
+                            
+                            return scheduleData;
+                        }
+                    }
                 }
                 
                 // Fallback to local JSON file
@@ -910,7 +957,10 @@
             console.log('scheduleData:', window.scheduleData);
             
             const days = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-            let content = `
+            let content = '';
+            
+            // Add header
+            content += `
                 <div class="header-info">
                     <h2><i class="fas fa-calendar-week"></i> Resumo Semanal</h2>
                     <p>Visão geral dos horários de funcionamento da USF Apipucos</p>
@@ -943,152 +993,45 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td><strong>Dr. Rubens Cavalcanti</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Dr. Felipe Jacobovitz (R1)</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Dra. Sabrynna Mayara (R2)</strong></td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">-</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Dr. Marcos Augusto</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Enf. Clariane Falcão</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Estudo</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Enf. Tharcia Bezerra</strong></td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Téc. Enf. Carmen Verônica</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Téc. Enf. (Suporte)</strong></td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Coleta</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Dra. Loala Lindoso</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Dra. Sania Buonora</strong></td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                            <td contenteditable="true">Atendimento</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Agentes de Saúde</strong></td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Visitas</td>
-                            <td contenteditable="true">Reunião</td>
-                            <td contenteditable="true">Atividades</td>
-                        </tr>
+            `;
+            
+            // Add table rows
+            const professionals = [
+                { name: 'Dr. Rubens Cavalcanti', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                { name: 'Dr. Felipe Jacobovitz (R1)', schedule: ['Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-'] },
+                { name: 'Dra. Sabrynna Mayara (R2)', schedule: ['-', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-', 'Atendimento', '-'] },
+                { name: 'Dr. Marcos Augusto', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                { name: 'Enf. Clariane Falcão', schedule: ['Atendimento', 'Atendimento', 'Estudo', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                { name: 'Enf. Tharcia Bezerra', schedule: ['Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento'] },
+                { name: 'Téc. Enf. Carmen Verônica', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                { name: 'Téc. Enf. (Suporte)', schedule: ['Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento', 'Coleta', 'Atendimento'] },
+                { name: 'Dra. Loala Lindoso', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                { name: 'Dra. Sania Buonora', schedule: ['Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento', 'Atendimento'] },
+                { name: 'Agentes de Saúde', schedule: ['Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Visitas', 'Reunião', 'Atividades'] }
+            ];
+            
+            professionals.forEach(professional => {
+                content += `
+                    <tr>
+                        <td><strong>${professional.name}</strong></td>
+                `;
+                
+                professional.schedule.forEach(slot => {
+                    content += `<td contenteditable="true">${slot}</td>`;
+                });
+                
+                content += `
+                    </tr>
+                `;
+            });
+            
+            content += `
                     </tbody>
                 </table>
-                
+            `;
+            
+            // Add legend
+            content += `
                 <div class="legend" style="margin-top: 30px;">
                     <h3><i class="fas fa-palette"></i> Legenda de Cores</h3>
                     <div class="legend-grid">
@@ -1132,7 +1075,10 @@
                         </button>
                     </div>
                 </div>
-                
+            `;
+            
+            // Add professionals section
+            content += `
                 <div class="professionals-section" style="margin-top: 30px;">
                     <h3><i class="fas fa-user-md"></i> Profissionais da Unidade</h3>
                     <div class="professionals-grid" style="display: flex; flex-wrap: wrap; gap: 20px;">
@@ -1433,53 +1379,58 @@
                     }
                 }
 
-                // Save to Supabase
-                const dayNames = Object.keys(editedData.schedules);
-                
-                // Process each day's data
-                for (const dayName of dayNames) {
-                    const dayData = editedData.schedules[dayName];
+                // Save to Supabase (if ready)
+                if (window.supabaseReady && window.supabase) {
+                    const dayNames = Object.keys(editedData.schedules);
                     
-                    // Check if record already exists
-                    const { data: existingData, error: fetchError } = await window.supabase
-                        .from('schedule_data')
-                        .select('id')
-                        .eq('day_name', dayName);
-                    
-                    if (fetchError) {
-                        console.error('Error checking existing data:', fetchError);
-                        throw new Error('Erro ao verificar dados existentes');
-                    }
-                    
-                    if (existingData && existingData.length > 0) {
-                        // Update existing record
-                        const { error: updateError } = await window.supabase
+                    // Process each day's data
+                    for (const dayName of dayNames) {
+                        const dayData = editedData.schedules[dayName];
+                        
+                        // Check if record already exists
+                        const { data: existingData, error: fetchError } = await window.supabase
                             .from('schedule_data')
-                            .update({
-                                title: dayData.title,
-                                date: dayData.date,
-                                schedule: dayData.schedule
-                            })
+                            .select('id')
                             .eq('day_name', dayName);
                         
-                        if (updateError) {
-                            console.error('Error updating data:', updateError);
-                            throw new Error('Erro ao atualizar dados');
+                        if (fetchError) {
+                            console.error('Error checking existing data:', fetchError);
+                            // Continue with other days
+                            continue;
                         }
-                    } else {
-                        // Insert new record
-                        const { error: insertError } = await window.supabase
-                            .from('schedule_data')
-                            .insert([{
-                                day_name: dayName,
-                                title: dayData.title,
-                                date: dayData.date,
-                                schedule: dayData.schedule
-                            }]);
                         
-                        if (insertError) {
-                            console.error('Error inserting data:', insertError);
-                            throw new Error('Erro ao inserir dados');
+                        if (existingData && existingData.length > 0) {
+                            // Update existing record
+                            const { error: updateError } = await window.supabase
+                                .from('schedule_data')
+                                .update({
+                                    title: dayData.title,
+                                    date: dayData.date,
+                                    schedule: dayData.schedule
+                                })
+                                .eq('day_name', dayName);
+                            
+                            if (updateError) {
+                                console.error('Error updating data:', updateError);
+                                // Continue with other days
+                                continue;
+                            }
+                        } else {
+                            // Insert new record
+                            const { error: insertError } = await window.supabase
+                                .from('schedule_data')
+                                .insert([{
+                                    day_name: dayName,
+                                    title: dayData.title,
+                                    date: dayData.date,
+                                    schedule: dayData.schedule
+                                }]);
+                            
+                            if (insertError) {
+                                console.error('Error inserting data:', insertError);
+                                // Continue with other days
+                                continue;
+                            }
                         }
                     }
                 }
@@ -1501,7 +1452,11 @@
                 announceToScreenReader('Cronograma salvo com sucesso');
                 
                 // Show success notification
-                showNotification('Cronograma salvo com sucesso no Supabase!', 'success');
+                if (window.supabaseReady) {
+                    showNotification('Cronograma salvo com sucesso no Supabase!', 'success');
+                } else {
+                    showNotification('Cronograma salvo localmente!', 'success');
+                }
                 
             } catch (error) {
                 handleError(error, 'ao salvar cronograma');
@@ -1985,6 +1940,9 @@
             console.log('🚀 Aplicação iniciando...');
             
             try {
+                // Show loading indicator while initializing
+                showLoadingIndicator('Inicializando aplicação...');
+                
                 // Load from JSON file directly
                 console.log('Carregando dados do arquivo JSON...');
                 window.scheduleData = await loadScheduleData();
@@ -2039,7 +1997,32 @@
                 
             } catch (error) {
                 console.error('❌ Erro ao inicializar:', error);
-                handleError(error, 'ao inicializar o sistema');
+                
+                // Show a more descriptive error message
+                const container = document.getElementById('content-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #dc3545; margin-bottom: 20px;"></i>
+                            <h3>Ops! Erro ao carregar o cronograma</h3>
+                            <p>Não foi possível carregar os dados do cronograma.</p>
+                            <p style="color: #6c757d; font-size: 0.9rem;">Detalhes: ${error.message}</p>
+                            <div style="margin-top: 20px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 5px; display: inline-block;">
+                                <p><strong>Soluções possíveis:</strong></p>
+                                <ul style="text-align: left;">
+                                    <li>Verifique sua conexão com a internet</li>
+                                    <li>Verifique se o arquivo <code>cronograma-dados.json</code> existe</li>
+                                    <li>Verifique o console do navegador para mais detalhes</li>
+                                    <li>Recarregue a página</li>
+                                </ul>
+                            </div>
+                            <button onclick="location.reload()" class="action-button" style="background: #007bff; color: white; margin-top: 20px;">
+                                <i class="fas fa-refresh"></i> Recarregar Página
+                            </button>
+                        </div>
+                    `;
+                }
+                
                 // Don't override the content container with error message, just log it
                 console.error('Erro ao carregar o sistema. Tente recarregar a página.');
             }

@@ -26,13 +26,17 @@ This document explains how to set up and use Supabase to persist your cronograma
 
 ### 3. Configure the Application
 
-1. Open the `supabase.js` file in your project
-2. Replace the placeholder values with your actual Supabase credentials:
-
-```javascript
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://your-project.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g., 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-```
+1. Open the `index.html` file in your project
+2. Find the Supabase configuration section (around line 755):
+   ```javascript
+   const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://your-project.supabase.co'
+   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g., 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+   ```
+3. Replace the placeholder values with your actual Supabase credentials:
+   ```javascript
+   const SUPABASE_URL = 'https://your-project.supabase.co';
+   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+   ```
 
 ### 4. Create the Database Schema
 
@@ -62,7 +66,7 @@ The integration works as follows:
 
 ### Common Issues
 
-1. **"Supabase is not defined" error**: Make sure you've correctly configured your Supabase credentials in `supabase.js`
+1. **"Supabase is not defined" error**: Make sure you've correctly configured your Supabase credentials in `index.html`
 
 2. **Data not saving**: Check that you've created the database schema correctly
 
