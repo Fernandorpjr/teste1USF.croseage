@@ -749,37 +749,9 @@
     </div>
 
     <script type="module">
-        // Import Supabase client
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-        
-        // Initialize Supabase with placeholder values
-        // Initialize Supabase with placeholder values
-        // These will be updated when the user configures their Supabase project
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        
-        // Check if Supabase is properly configured
-        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
-            try {
-                // Create Supabase client
-                const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                
-                // Make supabase available globally
-                window.supabase = supabase;
-                
-                // Signal that Supabase is ready
-                window.supabaseReady = true;
-                console.log('Supabase client initialized successfully');
-            } catch (error) {
-                console.error('Failed to initialize Supabase client:', error);
-                // Supabase not configured properly, set flag to false
-                window.supabaseReady = false;
-            }
-        } else {
-            // Supabase not configured, set flag to false
-            window.supabaseReady = false;
-            console.log('Supabase not configured, using local data only');
-        }
+        // For GitHub Pages, we'll use local data only
+        window.supabaseReady = false;
+        console.log('Using local data only for GitHub Pages');
     </script>
     
     <script>
@@ -834,67 +806,14 @@
             }
         }
 
-        // Enhanced data loading with caching
+        // Simplified data loading for GitHub Pages - local data only
         async function loadScheduleData() {
             try {
                 console.log('Iniciando carregamento de dados...');
                 
-                // Wait for Supabase to be ready
-                if (typeof window.supabaseReady === 'undefined') {
-                    console.log('Waiting for Supabase to be ready...');
-                    // Show loading indicator
-                    showLoadingIndicator('Inicializando conexão com Supabase...');
-                    
-                    // Wait for Supabase to be ready (with timeout)
-                    let attempts = 0;
-                    const maxAttempts = 50; // 5 seconds max
-                    while (!window.supabaseReady && attempts < maxAttempts) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        attempts++;
-                    }
-                    
-                    if (!window.supabaseReady) {
-                        console.warn('Supabase not ready after timeout, continuing with local data');
-                    }
-                }
-                
                 // Show loading indicator
-                showLoadingIndicator('Carregando dados do Supabase...');
-                
-                // Try to fetch data from Supabase first (if ready)
-                if (window.supabaseReady && window.supabase) {
-                    console.log('Carregando dados do Supabase...');
-                    
-                    const { data: supabaseData, error } = await window.supabase
-                        .from('schedule_data')
-                        .select('*');
-                    
-                    if (error) {
-                        console.error('Erro ao carregar dados do Supabase:', error);
-                        // Continue with fallback to local data
-                    } else {
-                        // If we have data from Supabase, use it
-                        if (supabaseData && supabaseData.length > 0) {
-                            console.log('Dados carregados do Supabase com sucesso:', supabaseData);
-                            
-                            // Convert array to object format
-                            const scheduleData = {};
-                            supabaseData.forEach(item => {
-                                scheduleData[item.day_name] = {
-                                    title: item.title,
-                                    date: item.date,
-                                    schedule: item.schedule
-                                };
-                            });
-                            
-                            return scheduleData;
-                        }
-                    }
-                }
-                
-                // Fallback to local JSON file
                 showLoadingIndicator('Carregando dados do arquivo local...');
-                console.log('Nenhum dado encontrado no Supabase, carregando dados do arquivo JSON...');
+                console.log('Carregando dados do arquivo JSON...');
                 
                 const response = await fetch('cronograma-dados.json');
                 console.log('Resposta do fetch:', response);
@@ -1339,6 +1258,7 @@
         }
 
         // Enhanced save functionality
+        // Simplified save functionality for GitHub Pages - local storage only
         async function saveSchedule() {
             if (!isEditing) {
                 announceToScreenReader('Nenhuma edição para salvar');
@@ -1347,7 +1267,7 @@
 
             try {
                 // Show loading indicator
-                showLoadingIndicator('Salvando dados no Supabase...');
+                showLoadingIndicator('Salvando dados localmente...');
                 
                 const editedData = { schedules: {} };
                 const days = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
@@ -1379,63 +1299,7 @@
                     }
                 }
 
-                // Save to Supabase (if ready)
-                if (window.supabaseReady && window.supabase) {
-                    const dayNames = Object.keys(editedData.schedules);
-                    
-                    // Process each day's data
-                    for (const dayName of dayNames) {
-                        const dayData = editedData.schedules[dayName];
-                        
-                        // Check if record already exists
-                        const { data: existingData, error: fetchError } = await window.supabase
-                            .from('schedule_data')
-                            .select('id')
-                            .eq('day_name', dayName);
-                        
-                        if (fetchError) {
-                            console.error('Error checking existing data:', fetchError);
-                            // Continue with other days
-                            continue;
-                        }
-                        
-                        if (existingData && existingData.length > 0) {
-                            // Update existing record
-                            const { error: updateError } = await window.supabase
-                                .from('schedule_data')
-                                .update({
-                                    title: dayData.title,
-                                    date: dayData.date,
-                                    schedule: dayData.schedule
-                                })
-                                .eq('day_name', dayName);
-                            
-                            if (updateError) {
-                                console.error('Error updating data:', updateError);
-                                // Continue with other days
-                                continue;
-                            }
-                        } else {
-                            // Insert new record
-                            const { error: insertError } = await window.supabase
-                                .from('schedule_data')
-                                .insert([{
-                                    day_name: dayName,
-                                    title: dayData.title,
-                                    date: dayData.date,
-                                    schedule: dayData.schedule
-                                }]);
-                            
-                            if (insertError) {
-                                console.error('Error inserting data:', insertError);
-                                // Continue with other days
-                                continue;
-                            }
-                        }
-                    }
-                }
-                
-                // Also save to localStorage as backup
+                // Save to localStorage
                 localStorage.setItem('editedSchedule', JSON.stringify(editedData));
                 
                 // Update global data
@@ -1450,13 +1314,7 @@
                 });
 
                 announceToScreenReader('Cronograma salvo com sucesso');
-                
-                // Show success notification
-                if (window.supabaseReady) {
-                    showNotification('Cronograma salvo com sucesso no Supabase!', 'success');
-                } else {
-                    showNotification('Cronograma salvo localmente!', 'success');
-                }
+                showNotification('Cronograma salvo localmente!', 'success');
                 
             } catch (error) {
                 handleError(error, 'ao salvar cronograma');
